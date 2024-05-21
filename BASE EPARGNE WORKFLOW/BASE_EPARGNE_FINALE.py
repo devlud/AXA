@@ -1,7 +1,8 @@
 # Databricks notebook source
 print("=======================================================================================================================================")
 print("")
-
+print("Auteur du Programme : Ludovic RAVENACH")
+print("Date de création : 12/04/2024")
 print("") 
 print("=======================================================================================================================================")
 
@@ -9,14 +10,27 @@ print("=========================================================================
 
 pip install jours-feries-france
 
+
+# COMMAND ----------
+
+from pyspark.sql.window import Window
+from pyspark.sql.functions import *
+import pyspark.sql.functions as F
+import calendar
+from pyspark.sql.functions import row_number 
+from datetime import date
+from datetime import datetime, timedelta, date
+from axapy.labs.piper import NovaReader,DmtlsReader,RduReader
+from axapy.functions import telecharger_dataframe,telecharger_fichier,sauvegarder_dataframe_to_csv,telecharger_dossier
+import pandas as pd
+
 # COMMAND ----------
 
 # MAGIC %md ### SAISIE MANUELLE
 
 # COMMAND ----------
 
-annee="2023"  # Indiquer l'année      
-mois="12"     # Indiquer le mois 
+# MAGIC %run ./PARAMETRES 
 
 # COMMAND ----------
 
@@ -24,7 +38,7 @@ mois="12"     # Indiquer le mois
 
 # COMMAND ----------
 
-# MAGIC %run /Shared/FCA/FCA
+Base_FCA=spark.read.format("parquet").table("Base_FCA")
 
 # COMMAND ----------
 
@@ -32,7 +46,7 @@ mois="12"     # Indiquer le mois
 
 # COMMAND ----------
 
-# MAGIC %run /Shared/RDU/RDU
+RDU=spark.read.format("parquet").table("RDU")
 
 # COMMAND ----------
 
@@ -40,17 +54,7 @@ mois="12"     # Indiquer le mois
 
 # COMMAND ----------
 
-# MAGIC %run /Shared/AWS/AWS
-
-# COMMAND ----------
-
-
-Base_AWS =( Base_AWS_VF
-.select(F.col("NUMERO_CONTRAT"),F.col("CODE_PRODUIT"),F.col("NOM_PRODUIT"),F.col("SITUATION_CLOTURE"),F.col("DATE_EFFET"),F.col("DATE_TERME"),F.col("DT_VL_FIN"),F.col("CODE_ISIN"),F.col("NOM_SUPPORT"),F.col("SUPPORT_SPECIFIQUE"),F.col("CODE_UT"),
-F.col("TYPE_SUPPORT"),F.col("MANDAT_DE_GESTION").alias("TYPE_GESTION"),F.col("PROFIL_GESTION"),F.col("Collecte_Brute_TOTALE"),F.col("Versement_Initial")	,F.col("Versement_Complementaire")	,F.col("Prelevement_Automatique")	,F.col("Transfert_Entrant")	,F.col("Prestation_TOTALE")	,F.col("Rachat"),F.col("Sinistre")	,F.col("Echu"),F.col("Transfert_Sortant")	,F.col("Arbitrage_Entrant")	,F.col("Arbitrage_Entrant_RAG")	,F.col("Arbitrage_Entrant_Client")	,F.col("Arbitrage_Sortant")	,F.col("Arbitrage_Sortant_RAG")	,F.col("Arbitrage_Sortant_Client"),F.col("PM_DEBUT"),F.col("PM_FIN"),F.col("CODE_PORTEFEUILLE"),F.col("UJ"),F.col("NUMERO_CLIENT"),
-F.col("TYPE_PRSN"),F.col("SYSTEME"),F.col("SEGMENT"),F.col("TOP_RETRAITE"),F.col("LB_CANAL")))
-
-
+Base_AWS=spark.read.format("parquet").table("Base_AWS_VF")
 
 # COMMAND ----------
 
@@ -58,15 +62,7 @@ F.col("TYPE_PRSN"),F.col("SYSTEME"),F.col("SEGMENT"),F.col("TOP_RETRAITE"),F.col
 
 # COMMAND ----------
 
-# MAGIC %run /Shared/NOVA/NOVA
-# MAGIC
-
-# COMMAND ----------
-
-Base_NOVA =(Base_NOVA_VF
-.select(F.col("NUMERO_CONTRAT"),F.col("CODE_PRODUIT"),F.col("LIBELLE_PRODUIT").alias("NOM_PRODUIT"),F.col("LIBELLE_ETAT_CONTRAT").alias("SITUATION_CLOTURE"),
-F.col("DATE_DEBUT_EFFET_CONTRAT").alias("DATE_EFFET"),F.col("DATE_FIN_EFFET_CONTRAT").alias("DATE_TERME"),F.col("DT_VL_FIN"),F.col("CODE_ISIN"),F.col("NOM_SUPPORT"),
-F.col("SUPPORT_SPECIFIQUE"),F.col("CODE_UT"),F.col("TYPE_SUPPORT"),F.col("TYPE_GESTION"),F.col("PROFIL_GESTION"),F.col("Collecte_Brute_TOTALE"),F.col("Versement_Initial"),F.col("Versement_Complementaire"),F.col("Prelevement_Automatique"),F.col("Transfert_Entrant"),F.col("Prestation_TOTALE"),F.col("Rachat"),F.col("Sinistre"),F.col("Echu"),F.col("Transfert_Sortant"),F.col("Arbitrage_Entrant"),F.col("Arbitrage_Entrant_RAG"),F.col("Arbitrage_Entrant_Client"),F.col("Arbitrage_Sortant"),F.col("Arbitrage_Sortant_RAG"),F.col("Arbitrage_Sortant_Client"),F.col("PM_DEBUT"),F.col("PM_FIN"),F.col("CODE_PORTEFEUILLE"),F.col("UJ"),F.col("NUMERO_CLIENT"),F.col("TYPE_PRSN"),F.col("SYSTEME"),F.col("SEGMENT"),F.col("TOP_RETRAITE"),F.col("LB_CANAL")))
+Base_NOVA=spark.read.format("parquet").table("Base_NOVA_VF")
 
 
 # COMMAND ----------
@@ -75,13 +71,7 @@ F.col("SUPPORT_SPECIFIQUE"),F.col("CODE_UT"),F.col("TYPE_SUPPORT"),F.col("TYPE_G
 
 # COMMAND ----------
 
-# MAGIC %run /Shared/AGIPI/AGIPI
-# MAGIC
-
-# COMMAND ----------
-
-Base_AGIPI=(Base_AGIPI_VF
-.select(F.col("NUMERO_CONTRAT"),F.col("CODE_PRODUIT"),F.col("NOM_PRODUIT"),F.col("SITUATION_CLOTURE"),F.col("DATE_EFFET"),F.col("DATE_TERME"),F.col("DT_VL_FIN"),F.col("CODE_ISIN"),F.col("NOM_SUPPORT"),F.col("SUPPORT_SPECIFIQUE"),F.col("CODE_UT") ,F.col("TYPE_SUPPORT"),F.col("TYPE_GESTION"),F.col("PROFIL_GESTION"),F.col("Collecte_Brute_TOTALE")	,F.col("Versement_Initial")	,F.col("Versement_Complementaire"),F.col("Prelevement_Automatique"),F.col("Transfert_Entrant")	,F.col("Prestation_TOTALE")	,F.col("Rachat"),F.col("Sinistre"),F.col("Echu")	,F.col("Transfert_Sortant")	,F.col("Arbitrage_Entrant")	,F.col("Arbitrage_Entrant_RAG")	,F.col("Arbitrage_Entrant_Client")	,F.col("Arbitrage_Sortant")	,F.col("Arbitrage_Sortant_RAG")	,F.col("Arbitrage_Sortant_Client"),F.col("PM_DEBUT"),F.col("PM_FIN"),F.col("CODE_PORTEFEUILLE"),F.col("UJ"),F.col("NUMERO_CLIENT"),F.col("TYPE_PRSN"),F.col("SYSTEME"),F.col("SEGMENT"),F.col("TOP_RETRAITE"),F.col("LB_CANAL")))
+Base_AGIPI=spark.read.format("parquet").table("Base_AGIPI_VF")
 
 
 # COMMAND ----------
@@ -340,7 +330,7 @@ Base_Epargne_Finale=(
 #bloc pour supprimer les contrats sans informations qui n'ont aucun flux et ou PM sur l'année d'étude            
 .withColumn("CUMUL", F.col('Collecte_Brute_TOTALE')+F.col('Prestation_TOTALE')+F.col('Arbitrage_Entrant')+F.col('Arbitrage_Sortant')+F.col('PM_DEBUT')+F.col('PM_FIN')
            )
-.withColumn("CUMUL_1", F.sum(F.col("CUMUL")).over(window))
+.withColumn("CUMUL_1", F.sum(F.col("CUMUL")).over(windowSpec))
 .filter(F.col('CUMUL_1')!=0)
 .drop("CUMUL","CUMUL_1")
 
@@ -379,10 +369,26 @@ Base_Epargne_Finale=(
 
  .withColumn("Arbitrage_Sortant_UC",F.when(F.col("TYPE_SUPPORT").isin(["UC"]),F.col("Arbitrage_Sortant")).otherwise(0))             
  .withColumn("Arbitrage_Sortant_EURO",F.when(F.col("TYPE_SUPPORT").isin(["EURO"]),F.col("Arbitrage_Sortant")).otherwise(0))              
- .withColumn("Arbitrage_Sortant_EUROCROISSANCE",F.when(F.col("TYPE_SUPPORT").isin(["EUROCROISSANCE"]),F.col("Arbitrage_Sortant")).otherwise(0)) )
+ .withColumn("Arbitrage_Sortant_EUROCROISSANCE",F.when(F.col("TYPE_SUPPORT").isin(["EUROCROISSANCE"]),F.col("Arbitrage_Sortant")).otherwise(0))
+ 
+ .withColumn("TYPE_PRSN",
+                          F.when((F.col("SYSTEME")=="NOVA") & (F.col("TYPE")=="DOUBLE PROFIL") & (F.col("CIVILITE_PM").isin(["ASSOC","CAB","SOC","SYND","SARL","ENTR","STE","CBT","ASSO"])),F.lit("MOR"))
+                          .when((F.col("SYSTEME")=="NOVA")&(F.col("TYPE")=="FICHE PM"),F.lit("MOR"))
+                          .when((F.col("SYSTEME")=="NOVA") & (F.col("TYPE")=="DOUBLE PROFIL") & (~ F.col("CIVILITE_PM").isin(["ASSOC","CAB","SOC","SYND","SARL","ENTR","STE","CBT","ASSO"])),F.lit("PHY")).when((F.col("SYSTEME")=="NOVA") & (F.col("TYPE")=="FICHE PP"),F.lit("PHY"))
+                          .when((F.col("SYSTEME")=="NOVA") & (~ F.col("TYPE").isin(["DOUBLE PROFIL","FICHE PM","FICHE PP"])),F.lit("ND")) 
+                          .otherwise(F.col("TYPE_PRSN")))
+        
 
 
+.withColumn("TYPE_PRSN",F.when(F.col("TYPE_PRSN").isNull(),F.lit("PHY"))
+                         .otherwise(F.col("TYPE_PRSN")))
+  
 
+             
+             
+             
+             
+             )
  
 Base_Epargne_Finale=(Base_Epargne_Finale
 
@@ -439,28 +445,6 @@ F.col("TOP_ONE"),F.col("SEGMENT"),F.col("SEGMENTATION"),F.col("TOP_TMGA"),F.col(
 .sort(["NUMERO_CONTRAT"],descending=True).na.fill(value=0) 
 
 )
-
-
-
-
-# COMMAND ----------
-
-#d=(Base_Epargne_Finale.groupBy(F.col("RESEAU"),F.col("SYSTEME"))
-#.agg(
-
-#F.sum(F.col("Affaire_Nouvelle")).alias("Affaire_Nouvelle"),
-#F.sum(F.col("Collecte_Brute_TOTALE")).alias("Collecte_Brute_TOTALE"),
-#F.sum(F.col("Prestation_TOTALE")).alias("Prestation_TOTALE"),
-#F.sum(F.col("Arbitrage_Entrant")).alias("Arbitrage_Entrant"),
-#F.sum(F.col("Arbitrage_Sortant")).alias("Arbitrage_Sortant"),
-
-#F.sum(F.col("PM_DEBUT")).alias("PM_DEBUT"),
-#F.sum(F.col("PM_FIN")).alias("PM_FIN")))
-
-
-# COMMAND ----------
-
-#telecharger_dataframe(d)
 
 # COMMAND ----------
 
