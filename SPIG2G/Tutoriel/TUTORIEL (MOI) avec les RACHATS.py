@@ -145,6 +145,8 @@ Spig2sRead.get_criteria('reseau').display()
 # SOURCE
 
 # CUBE Axa France : MEMBRECUBE("Cube CdG";"[05 Distribution].[052 Reseau Commercial].[All].[Réseau Axa France]")
+# Cube IRIS : 1 élément après [All] 
+# Donc pour SPIG2S : On part du dernier niveau et on augmente de 1 c'est à dire le niveau 6 (car il y a 7 niveau)
 
 Spig2sRead.set_criteria('reseau','colonnes_affichage',['Res_Com_Niv_4','Res_Com_Niv_3','Region_Com_Niv_2_Detail_Cube']) 
 Spig2sRead.set_criteria('reseau','colonne_filtre','Res_Com_Niv_6') 
